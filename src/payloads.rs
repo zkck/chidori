@@ -5,8 +5,21 @@ use serde::Serialize;
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "type")]
 pub enum Payload {
-    Echo { echo: String },
-    EchoOk { echo: String },
-    Read { key: usize },
-    ReadOk { value: usize },
+    Init {
+        node_id: String,
+        node_ids: Vec<String>,
+    },
+    InitOk,
+    Echo {
+        echo: String,
+    },
+    EchoOk {
+        echo: String,
+    },
+    Read {
+        key: usize,
+    },
+    ReadOk {
+        value: usize,
+    },
 }

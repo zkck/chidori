@@ -3,23 +3,52 @@ use std::io;
 mod message;
 mod payloads;
 
-struct EchoNode {
-    name: Option<String>,
+struct NodeInfo {
+    node_id: String,
+    _node_ids: Vec<String>,
+}
+
+struct Node {
+    node_info: Option<NodeInfo>,
     current_id: usize,
 }
 
-impl EchoNode {
+impl Node {
+    fn node_id(&self) -> Option<String> {
+        match &self.node_info {
+            Some(node_info) => Some(node_info.node_id.clone()),
+            None => None,
+        }
+    }
+
+    fn reply(
+        &mut self,
+        message: &message::Message,
+        payload: payloads::Payload,
+    ) -> Result<message::Message, &'static str> {
+        Ok(message::Message {
+            src: self.node_id().ok_or("node not initialized")?,
+            dest: message.src.clone(),
+            body: message::MessageBody {
+                msg_id: Some(self.get_msg_id()),
+                in_reply_to: message.body.msg_id,
+                payload,
+            },
+        })
+    }
+
     fn handle(&mut self, message: &message::Message) -> Result<message::Message, &'static str> {
         match &message.body.payload {
-            payloads::Payload::Echo { echo } => Ok(message::Message {
-                src: self.name.clone().ok_or("node not yet initialized")?,
-                dest: message.src.clone(),
-                body: message::MessageBody {
-                    msg_id: Some(self.get_msg_id()),
-                    in_reply_to: message.body.msg_id,
-                    payload: payloads::Payload::EchoOk { echo: echo.clone() },
-                },
-            }),
+            payloads::Payload::Init { node_id, node_ids } => {
+                self.node_info = Some(NodeInfo {
+                    node_id: node_id.clone(),
+                    _node_ids: node_ids.clone(),
+                });
+                self.reply(message, payloads::Payload::InitOk)
+            }
+            payloads::Payload::Echo { echo } => {
+                self.reply(message, payloads::Payload::EchoOk { echo: echo.clone()})
+            },
             _ => Err("unsupported message type"),
         }
     }
@@ -32,15 +61,18 @@ impl EchoNode {
 }
 
 fn main() -> io::Result<()> {
-    let mut node = EchoNode {
-        name: None,
+    let mut node = Node {
+        node_info: None,
         current_id: 0,
     };
 
     for line in io::stdin().lines() {
         match serde_json::from_str(&line?) {
             Ok(message) => match node.handle(&message) {
-                Ok(answer) => serde_json::to_writer(io::stdout(), &answer)?,
+                Ok(answer) => {
+                    serde_json::to_writer(io::stdout(), &answer)?;
+                    println!();
+                }
                 Err(error) => eprintln!("Error handling message: {}", error),
             },
             Err(e) => eprintln!("Error reading line: {}", e),
@@ -55,8 +87,11 @@ mod tests {
 
     #[test]
     fn handle_echo() {
-        let mut node = EchoNode {
-            name: Some("n42".to_string()),
+        let mut node = Node {
+            node_info: Some(NodeInfo {
+                node_id: "n42".to_string(),
+                _node_ids: vec![],
+            }),
             current_id: 0,
         };
 
