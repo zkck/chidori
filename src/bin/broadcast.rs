@@ -41,16 +41,19 @@ impl chidori::Handler<Payload> for Handler {
             Payload::Broadcast { message } => {
                 if self.messages.insert(*message) {
                     // new message, propagate
-                    let neighbors = match self
+                    let neighbors = self
                         .topology
                         .as_ref()
                         .and_then(|t| t.get(&channel.node_id))
-                    {
-                        Some(neighbors) => neighbors.clone(),
-                        None => channel.node_ids.clone(),
-                    };
+                        .ok_or("unknown topology")?
+                        .clone();
                     for neighbor in &neighbors {
-                        channel.send(neighbor, &Payload::Broadcast { message: message.clone() })?;
+                        channel.send(
+                            neighbor,
+                            &Payload::Broadcast {
+                                message: message.clone(),
+                            },
+                        )?;
                     }
                 }
                 channel.reply(received, &Payload::BroadcastOk)?
