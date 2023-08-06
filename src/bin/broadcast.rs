@@ -39,7 +39,20 @@ impl chidori::Handler<Payload> for Handler {
     ) -> Result<(), &'static str> {
         match &received.body.payload {
             Payload::Broadcast { message } => {
-                self.messages.insert(*message);
+                if self.messages.insert(*message) {
+                    // new message, propagate
+                    let neighbors = match self
+                        .topology
+                        .as_ref()
+                        .and_then(|t| t.get(&channel.node_id))
+                    {
+                        Some(neighbors) => neighbors.clone(),
+                        None => channel.node_ids.clone(),
+                    };
+                    for neighbor in &neighbors {
+                        channel.send(neighbor, &Payload::Broadcast { message: message.clone() })?;
+                    }
+                }
                 channel.reply(received, &Payload::BroadcastOk)?
             }
             Payload::Read => channel.reply(
