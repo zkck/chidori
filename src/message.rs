@@ -1,10 +1,8 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::payloads;
-
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub struct MessageBody {
+pub struct MessageBody<T> {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub msg_id: Option<usize>,
@@ -14,11 +12,11 @@ pub struct MessageBody {
     pub in_reply_to: Option<usize>,
 
     #[serde(flatten)]
-    pub payload: payloads::Payload,
+    pub payload: T,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub struct Message {
+pub struct Message<T> {
     /// A string identifying the node this message came from
     pub src: String,
 
@@ -26,5 +24,5 @@ pub struct Message {
     pub dest: String,
 
     /// An object: the payload of the message
-    pub body: MessageBody,
+    pub body: MessageBody<T>,
 }
