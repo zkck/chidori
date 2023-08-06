@@ -23,13 +23,13 @@ impl From<&Init> for MessageChannel {
 }
 
 impl MessageChannel {
-    pub fn reply<T, P>(
+    pub fn reply<T>(
         &mut self,
         received: &message::Message<T>,
-        payload: &P,
+        payload: &T,
     ) -> Result<(), &'static str>
     where
-        P: Serialize,
+        T: Serialize,
     {
         let reply_message = message::Message {
             src: self.node_id.clone(),
