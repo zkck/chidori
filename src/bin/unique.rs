@@ -34,13 +34,11 @@ impl chidori::Handler<Payload> for Handler {
         Ok(())
     }
 
-    fn handle_tick(&mut self, channel: &mut channel::MessageChannel) -> Result<(), &'static str> {
-        todo!()
+    fn handle_tick(&mut self, _channel: &mut channel::MessageChannel) -> Result<(), &'static str> {
+        Ok(())
     }
 
-    fn send_events(&self, send_channel: &std::sync::mpsc::Sender<chidori::Event>) {
-        todo!()
-    }
+    fn send_events(&self, _send_channel: &std::sync::mpsc::Sender<chidori::Event>) {}
 }
 
 fn main() -> io::Result<()> {
