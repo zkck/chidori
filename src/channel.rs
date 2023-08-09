@@ -31,7 +31,7 @@ impl From<&Init> for MessageChannel {
 }
 
 impl MessageChannel {
-    pub fn send<T>( &mut self, node: &str, payload: &T,) -> Result<(), &'static str>
+    pub fn send<T>(&mut self, node: &str, payload: &T) -> Result<(), &'static str>
     where
         T: Serialize,
     {

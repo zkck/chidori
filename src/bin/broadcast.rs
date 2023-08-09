@@ -32,7 +32,7 @@ struct Handler {
 }
 
 impl chidori::Handler<Payload> for Handler {
-    fn process_message(
+    fn handle_message(
         &mut self,
         received: &message::Message<Payload>,
         channel: &mut channel::MessageChannel,
@@ -71,6 +71,15 @@ impl chidori::Handler<Payload> for Handler {
             _ => {}
         }
         Ok(())
+    }
+
+    fn handle_tick(&mut self, _channel: &mut channel::MessageChannel) -> Result<(), &'static str> {
+        // does nothing
+        Ok(())
+    }
+
+    fn send_events(&self, _send_channel: &std::sync::mpsc::Sender<chidori::Event>) {
+        // does nothing
     }
 }
 
