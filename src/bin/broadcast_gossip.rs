@@ -37,6 +37,8 @@ enum Payload {
 struct Handler {
     messages: HashSet<i64>,
     topology: Option<HashMap<String, Vec<String>>>,
+
+    known_by_dest: HashMap<String, HashSet<i64>>,
 }
 
 impl chidori::Handler<Payload> for Handler {
@@ -62,6 +64,10 @@ impl chidori::Handler<Payload> for Handler {
             }
             Payload::Gossip { messages } => {
                 self.messages.extend(messages);
+                self.known_by_dest
+                    .entry(received.src.clone())
+                    .or_default()
+                    .extend(messages);
                 // no reply
             }
             _ => {}
@@ -70,15 +76,19 @@ impl chidori::Handler<Payload> for Handler {
     }
 
     fn handle_tick(&mut self, channel: &mut channel::MessageChannel) -> Result<(), &'static str> {
-        let Some(neighbors) = self.get_neighbors(&channel.node_id)
-        else {
+        let Some(neighbors) = self.get_neighbors(&channel.node_id) else {
+            // topology not yet received, do not gossip
             return Ok(())
         };
         for neighbor in neighbors {
             channel.send(
                 &neighbor,
                 &Payload::Gossip {
-                    messages: self.messages.clone(),
+                    messages: self
+                        .messages
+                        .difference(self.known_by_dest.get(&neighbor).unwrap_or(&HashSet::new()))
+                        .cloned()
+                        .collect::<HashSet<i64>>(),
                 },
             )?;
         }
@@ -88,7 +98,7 @@ impl chidori::Handler<Payload> for Handler {
     fn send_events(&self, send_channel: &mpsc::Sender<chidori::Event>) {
         let send_channel = send_channel.clone();
         thread::spawn(move || loop {
-            thread::sleep(time::Duration::from_millis(200));
+            thread::sleep(time::Duration::from_millis(50));
             send_channel.send(Event::Tick).unwrap();
         });
     }
@@ -103,6 +113,8 @@ fn main() -> io::Result<()> {
     let mut handler = Handler {
         messages: HashSet::new(),
         topology: None,
+
+        known_by_dest: HashMap::new(),
     };
     chidori::main_loop(&mut handler)
 }
