@@ -2,6 +2,7 @@ use chidori;
 use chidori::channel;
 use chidori::message;
 use chidori::Event;
+use rand::seq::SliceRandom;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -80,15 +81,22 @@ impl chidori::Handler<Payload> for Handler {
             // topology not yet received, do not gossip
             return Ok(())
         };
+
+        let mut rng = rand::thread_rng();
+
         for neighbor in neighbors {
+            let (known, mut unknown) = self.messages.iter().partition::<Vec<i64>, _>(|m| {
+                self.known_by_dest
+                    .entry(neighbor.clone())
+                    .or_default()
+                    .contains(m)
+            });
+            // TODO: Explanation
+            unknown.extend(known.as_slice().choose_multiple(&mut rng, 5));
             channel.send(
                 &neighbor,
                 &Payload::Gossip {
-                    messages: self
-                        .messages
-                        .difference(self.known_by_dest.get(&neighbor).unwrap_or(&HashSet::new()))
-                        .cloned()
-                        .collect::<HashSet<i64>>(),
+                    messages: HashSet::from_iter(unknown),
                 },
             )?;
         }
