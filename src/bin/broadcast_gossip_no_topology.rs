@@ -16,7 +16,7 @@ use std::time;
 const NUM_GOSSIP_PEERS: usize = 5;
 const NUM_NOTIFY_KNOWN: usize = 5;
 
-const TICK_INTERVAL_MILLIS: u64 = 100;
+const TICK_INTERVAL_MILLIS: u64 = 200;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
